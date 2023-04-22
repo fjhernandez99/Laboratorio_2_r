@@ -1,0 +1,89 @@
+## Laboratorio No. 2
+
+##### Francisco Javier Hernández Azurdia
+
+##### Carné 999012591
+
+**Desarrollo del laboratorio**
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+library(dplyr)
+library(ggplot2)
+
+view(flights)
+view(airports)
+view(planes)
+view(airlines)
+view(weather)
+```
+
+1.  **Iner-join**
+
+```{r}
+flights %>%
+  inner_join(planes, by = "tailnum")
+
+flights %>%
+  inner_join(airlines, by = "carrier")
+
+flights %>%
+  inner_join(airports, by = c("origin" = "faa")) %>%
+  inner_join(airports, by = c("dest" = "faa"))
+ 
+flights %>%
+  inner_join(weather, by = c("year", "month", "day", "hour", "origin"))
+```
+
+2.  **Data manipulation**
+
+```{r}
+#2.1
+flights %>%
+  count(year, month, day) %>%
+  filter(n > 1000) %>%
+  arrange(n)
+
+#2.2
+flights_selected <- flights %>%
+  select(1:3, 6 , 9:10, 12:14, 17)
+
+print(flights_selected)
+
+#2.3
+airlines %>%
+  left_join(flights_selected, by = "carrier") %>%
+  select(-origin,-dest) %>%
+  mutate(tot_delay=arr_delay+dep_delay)
+
+#2.4
+precip_delay <- flights %>%
+  inner_join(weather, by = c("year", "month", "day", "hour", "origin")) %>% 
+  group_by(precip) %>%
+  summarise(delay = mean(dep_delay, na.rm=TRUE))
+
+precip_delay$delay <- replace_na(precip_delay$delay, 0)
+
+print(precip_delay)
+
+#2.5
+ggplot(precip_delay, aes(precip, delay)) + geom_point() + labs(title = "Precip Delay", x = "Precip", y = "Delay")
+
+#2.6
+flights_airports <- flights %>%
+  filter(year == 2013 & month == 5 & day == 10) %>%
+  group_by(dest) %>%
+  summarise(delay = mean(arr_delay,  na.rm=TRUE)) %>%
+  inner_join(airports, by = c("dest" = "faa"))
+
+print(flights_airports)
+
+#2.7
+ggplot(flights_airports, aes(lon, lat, color = delay, size = delay)) + geom_point() + labs(title = "Flights Airport", x = "Longitude", y = "Latitude")
+
+#2.8
+flights %>%
+  inner_join(planes, by = "tailnum", suffix = c("_flights", "_planes")) %>%
+  transmute(tailnum, manufacturer, pi = (dep_delay+arr_delay)/air_time)
+```
